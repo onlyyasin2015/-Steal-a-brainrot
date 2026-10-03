@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steal a Brainrot ONLINE — Web Edition (fan game)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#87ceeb;
+    font-family:'Segoe UI', Arial, sans-serif; user-select:none; }
+  canvas { display:block; }
+  #vignette { position:fixed; inset:0; pointer-events:none; z-index:14;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,20,.38) 100%); }
+
+  #hud { position:fixed; top:12px; left:12px; z-index:20; color:#fff; }
+  .stat { background:rgba(0,0,0,.55); border-radius:12px; padding:8px 16px;
+    margin-bottom:8px; font-size:20px; font-weight:700; width:max-content;
+    box-shadow:0 2px 8px rgba(0,0,0,.3); }
+  #cash { color:#ffe066; } #persec { color:#7CFC98; font-size:16px; }
+  #plots { color:#9ecbff; font-size:16px; }
+  #carryTag { background:rgba(200,30,30,.75); font-size:15px; }
+
+  #topBtns { position:fixed; top:12px; right:12px; z-index:20; display:flex; gap:8px; }
+  .tbtn { background:rgba(0,0,0,.55); color:#fff; border:none; border-radius:10px;
+    padding:10px 18px; font-size:15px; font-weight:700; cursor:pointer; }
+  .tbtn:hover { background:rgba(0,0,0,.75); }
+
+  #playersPanel { position:fixed; top:64px; right:12px; z-index:20; background:rgba(0,0,0,.5);
+    border-radius:12px; padding:10px 14px; color:#fff; font-size:13px; min-width:150px; }
+  #playersPanel h4 { font-size:12px; color:#aaa; margin-bottom:6px; letter-spacing:1px; }
+  .prow { display:flex; align-items:center; gap:7px; margin:3px 0; }
+  .pdot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+  #roomBar { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:20;
+    background:rgba(0,0,0,.55); color:#ffe066; border-radius:12px; padding:8px 18px;
+    font-weight:800; font-size:15px; cursor:pointer; display:none; }
+  #roomBar small { color:#bbb; font-weight:400; }
+
+  #crosshair { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    color:#fff; font-size:22px; z-index:15; text-shadow:0 0 4px #000; pointer-events:none; }
+  #batIcon { position:fixed; right:26px; bottom:26px; z-index:15; font-size:34px;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); pointer-events:none;
+    transition:transform .1s; }
+  #batIcon.swing { transform:rotate(-70deg) scale(1.25); }
+
+  .popup { position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+    background:rgba(20,22,30,.94); border:2px solid #444; border-radius:16px;
+    padding:16px 20px; z-index:40; color:#fff; min-width:300px; text-align:center;
+    box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .popup h3 { font-size:20px; margin-bottom:4px; }
+  .popup .sub { color:#bbb; font-size:14px; margin-bottom:10px; }
+  .btnrow { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .btnrow button { border:none; border-radius:10px; padding:9px 16px; font-size:14px;
+    font-weight:700; cursor:pointer; }
+  #btnBuy, #btnSteal { background:#2ecc71; color:#062; }
+  #btnSteal { background:#e74c3c; color:#fff; }
+  #btnPick { background:#3498db; color:#fff; }
+  #btnMove { background:#f39c12; color:#fff; }
+  #btnDelete { background:#e74c3c; color:#fff; }
+  #btnCloseM, #btnCloseB, #btnCloseS { background:#555; color:#fff; }
+
+  #indexPanel { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:rgba(20,22,30,.95); border:2px solid #444; border-radius:16px;
+    padding:20px 24px; z-index:40; color:#fff; width:370px; max-height:80vh; overflow:auto; }
+  #indexPanel h2 { margin-bottom:12px; }
+  .idxItem { display:flex; justify-content:space-between; align-items:center;
+    background:rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .idxItem .nm { font-weight:700; } .idxItem .inf { color:#aaa; font-size:12px; }
+  .rarityBadge { font-size:11px; font-weight:800; padding:2px 8px; border-radius:20px;
+    background:#333; margin-right:6px; }
+  .buyBtn { background:#2ecc71; color:#062; border:none; border-radius:8px;
+    padding:6px 12px; font-weight:800; cursor:pointer; }
+
+  #toast { position:fixed; top:70px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,.78); color:#fff; padding:10px 22px; border-radius:30px;
+    font-size:16px; font-weight:700; z-index:50; opacity:0; transition:opacity .25s;
+    pointer-events:none; max-width:80vw; text-align:center; }
+  #flash { position:fixed; inset:0; background:rgba(255,0,0,.35); opacity:0; z-index:45; pointer-events:none; }
+  #hint { position:fixed; bottom:10px; left:12px; z-index:20; color:rgba(255,255,255,.85);
+    font-size:12px; text-shadow:0 1px 3px #000; max-width:60vw; }
+
+  #overlay { position:fixed; inset:0; z-index:30; background:rgba(10,15,30,.88);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#fff; padding:20px; text-align:center; overflow:auto; }
+  #overlay h1 { font-size:40px; margin-bottom:6px; color:#ffe066;
+    text-shadow:0 3px 0 #b8860b, 0 6px 16px rgba(0,0,0,.5); }
+  #overlay p { color:#cfe3ff; margin:4px 0; font-size:15px; }
+  #menuBox { background:rgba(255,255,255,.07); border-radius:16px; padding:18px 24px; margin-top:14px; }
+  #menuBox input { padding:10px 14px; border-radius:10px; border:1px solid #555;
+    background:#14161e; color:#fff; font-size:15px; width:180px; text-align:center; }
+  .mbtn { display:block; width:100%; margin-top:10px; padding:12px; border:none;
+    border-radius:12px; font-size:16px; font-weight:800; cursor:pointer; }
+  #btnCreate { background:#2ecc71; color:#062; }
+  #btnJoin { background:#3498db; color:#fff; }
+  #btnOffline { background:#555; color:#fff; }
+  #joinRow { display:flex; gap:8px; margin-top:10px; }
+  #joinRow input { flex:1; }
+  #codeDisplay { font-size:34px; font-weight:900; color:#7CFC98; letter-spacing:6px; margin:8px 0; }
+  #shareLink { color:#9ecbff; font-size:13px; word-break:break-all; max-width:70vw; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="vignette"></div>
+<div id="flash"></div>
+
+<div id="hud">
+  <div class="stat" id="cash">💰 $100</div>
+  <div class="stat" id="persec">📈 $0/sec</div>
+  <div class="stat" id="plots">🏠 Plots 0/6</div>
+  <div class="stat hidden" id="carryTag">🥷 CARRYING: <span id="carryName"></span></div>
+</div>
+
+<div id="topBtns"><button class="tbtn" id="indexBtn">📖 Index</button></div>
+<div id="roomBar" title="Click to copy invite link"></div>
+<div id="playersPanel"><h4>PLAYERS</h4><div id="plist"></div></div>
+<div id="crosshair">+</div>
+<div id="batIcon">🏏</div>
+<div id="hint">WASD move · Mouse look · Space jump · Shift run · LMB interact/buy · RMB or F swing bat · I index</div>
+<div id="toast"></div>
+
+<div id="buyPopup" class="popup hidden">
+  <h3 id="buyName"></h3><div class="sub" id="buyInfo"></div>
+  <div class="btnrow"><button id="btnBuy">Buy</button><button id="btnCloseB">Close</button></div>
+</div>
+
+<div id="stealPopup" class="popup hidden">
+  <h3 id="stealName"></h3><div class="sub" id="stealInfo"></div>
+  <div class="btnrow"><button id="btnSteal">🥷 STEAL IT</button><button id="btnCloseS">Close</button></div>
+</div>
+
+<div id="managePopup" class="popup hidden">
+  <h3 id="mgName"></h3><div class="sub" id="mgInfo"></div>
+  <div class="btnrow">
+    <button id="btnPick">🖐 Pick Up</button><button id="btnMove">🔀 Move Plot</button>
+    <button id="btnDelete">🗑 Sell</button><button id="btnCloseM">Close</button>
+  </div>
+</div>
+
+<div id="indexPanel" class="hidden">
+  <h2>📖 Brainrot Index</h2><div id="idxList"></div>
+  <div class="btnrow" style="margin-top:10px"><button class="tbtn" id="idxClose">Close</button></div>
+</div>
+
+<div id="overlay">
+  <h1>🍕 STEAL A BRAINROT ONLINE</h1>
+  <p>Buy brainrots from the red road, place them on your base, earn $/sec…<br>
+  🥷 <b style="color:#ff6b6b">Sneak into ANY player's base and steal theirs!</b> 🏏 Punch thieves with your bat — they drop the loot!</p>
+  <div id="menuBox">
+    <input id="nameInput" maxlength="14" placeholder="Your name">
+    <div id="preMenu">
+      <button class="mbtn" id="btnCreate">🌐 CREATE ONLINE ROOM</button>
+      <div id="joinRow"><input id="joinInput" maxlength="5" placeholder="CODE"><button class="mbtn" id="btnJoin" style="width:auto;padding:12px 20px;margin:0">JOIN</button></div>
+      <button class="mbtn" id="btnOffline">🤖 PLAY OFFLINE (with bots)</button>
+    </div>
+    <div id="postMenu" class="hidden">
+      <p>Share this link — friends who open it join your world:</p>
+      <div id="codeDisplay"></div>
+      <p id="shareLink"></p>
+      <button class="mbtn" id="btnStart">▶ START PLAYING</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+// =====================================================================
+//  STEAL A BRAINROT ONLINE — web fan game (P2P multiplayer, no server)
+// =====================================================================
+const $ = id => document.getElementById(id);
+
+// ---------------- rarity & defs ----------------
+const RARITY = {
+  Common:    { color: 0xb8c4cc, css: '#b8c4cc' },
+  Rare:      { color: 0x3b82f6, css: '#3b82f6' },
+  Epic:      { color: 0xa855f7, css: '#a855f7' },
+  Legendary: { color: 0xf59e0b, css: '#f59e0b' },
+};
+const DEFS = [
+  { name:'Noobini Pizzanini',    rarity:'Common',    income:1,  cost:100,  weight:50, make:makeNoobini },
+  { name:'Talpa de Fero',        rarity:'Common',    income:2,  cost:200,  weight:30, make:makeTalpa },
+  { name:'Ballerina Cappuccina', rarity:'Rare',      income:3,  cost:450,  weight:14, make:makeCappuccina },
+  { name:'Bombardiro Crocodilo', rarity:'Epic',      income:6,  cost:1200, weight:5,  make:makeBombardiro },
+  { name:'Tung Tung Sahur',      rarity:'Legendary', income:12, cost:5000, weight:1,  make:makeTung },
+];
+const COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#00cec9','#f1c40f','#ff6b9d'];
+const TOTAL_SLOTS = 10;           // 0..6 humans, 7..9 bots
+const WORLD_R = 62;               // base circle radius (wide world!)
+const BOT_NAMES = ['Tung Tung Bot','Brr Brr Bot','Lirili Bot'];
+
+// ---------------- state ----------------
+let cash = 100;
+const wilds = [], owned = [];
+let plotOwner = [null,null,null,null,null,null];
+let carriedObj = null, moveObj = null, managed = null, buyTarget = null, stealRef = null;
+let myId = 'me', myName = 'Player', myColor = COLORS[0], myBase = 0;
+let started = false, botTimer = 4;
+
+// ---------------- three.js ----------------
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xcfe6ff, 90, 260);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 600);
+camera.rotation.order = 'YXZ';
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xeaf4ff, 0x3f6b46, 0.85));
+const sunLight = new THREE.DirectionalLight(0xfff2d0, 1.15);
+sunLight.position.set(90, 130, 50);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -130; sunLight.shadow.camera.right = 130;
+sunLight.shadow.camera.top = 130;   sunLight.shadow.camera.bottom = -130;
+sunLight.shadow.camera.far = 400;
+sunLight.shadow.bias = -0.0004;
+scene.add(sunLight);
+
+// sky dome shader
+scene.add(new THREE.Mesh(
+  new THREE.SphereGeometry(420, 32, 16),
+  new THREE.ShaderMaterial({
+    uniforms: { top:{value:new THREE.Color(0x2b7de0)}, bot:{value:new THREE.Color(0xd6ecff)} },
+    vertexShader: 'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 bot; varying vec3 vP; void main(){ float h=max(normalize(vP).y,0.0); gl_FragColor=vec4(mix(bot,top,pow(h,0.55)),1.0); }',
+    side: THREE.BackSide, depthWrite:false
+  })));
+// visible sun
+const sunBall = new THREE.Mesh(new THREE.SphereGeometry(14, 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xfff7c0, fog: false }));
+sunBall.position.set(200, 190, 110);
+scene.add(sunBall);
+
+// ---------------- procedural textures ----------------
+function canvasTex(size, painter, repX, repY) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  painter(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repX, repY);
+  return t;
+}
+const grassTex = canvasTex(256, (ctx,s) => {
+  ctx.fillStyle = '#69bd5c'; ctx.fillRect(0,0,s,s);
+  for (let i = 0; i < 2600; i++) {
+    const g = 150 + Math.random()*70 | 0;
+    ctx.fillStyle = 'rgba(' + (g*0.55|0) + ',' + g + ',' + (g*0.5|0) + ',0.5)';
+    ctx.fillRect(Math.random()*s, Math.random()*s, 2, 2 + Math.random()*3);
+  }
+}, 26, 26);
+const roadTex = canvasTex(256, (ctx,s) => {
+  ctx.fillStyle = '#c62828'; ctx.fillRect(0,0,s,s);
+  for (let i = 0; i < 1500; i++) {
+    ctx.fillStyle = 'rgba(' + (120+Math.random()*80|0) + ',20,20,0.35)';
+    ctx.fillRect(Math.random()*s, Math.random()*s, 2, 2);
+  }
+  ctx.fillStyle = '#e8e8e8'; ctx.fillRect(0, 8, s, 6); ctx.fillRect(0, s-14, s, 6);
+}, 34, 1);
+const concTex = canvasTex(128, (ctx,s) => {
+  ctx.fillStyle = '#aeb6bf'; ctx.fillRect(0,0,s,s);
+  for (let i = 0; i < 500; i++) {
+    ctx.fillStyle = 'rgba(90,95,105,' + Math.random()*0.25 + ')';
+    ctx.fillRect(Math.random()*s, Math.random()*s, 2, 2);
+  }
+}, 4, 3);
+
+// ---------------- world ----------------
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500),
+  new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }));
+ground.rotation.x = -Math.PI/2; ground.receiveShadow = true;
+scene.add(ground);
+
+const road = new THREE.Mesh(new THREE.BoxGeometry(250, 0.2, 7),
+  new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.95 }));
+road.position.set(0, 0.1, 0); road.receiveShadow = true;
+scene.add(road);
+for (let x = -120; x <= 120; x += 6) {
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 0.4),
+    new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  dash.position.set(x, 0.11, 0); scene.add(dash);
+}
+// lamp posts along road
+for (let x = -100; x <= 100; x += 25) {
+  [-5.5, 5.5].forEach(z => {
+    const lamp = new THREE.Group();
+    lamp.add(mesh(new THREE.CylinderGeometry(0.1, 0.14, 4.6, 8), 0x37474f, 0, 2.3, 0));
+    const bulb = mesh(new THREE.SphereGeometry(0.32, 10, 10), 0xfff2b0, 0, 4.7, 0);
+    bulb.material = new THREE.MeshStandardMaterial({ color: 0xfff2b0, emissive: 0xffe27a, emissiveIntensity: 0.9 });
+    lamp.add(bulb);
+    lamp.position.set(x, 0, z);
+    scene.add(lamp);
+  });
+}
+
+// shop stall at west end of road
+const stall = new THREE.Group();
+stall.add(mesh(new THREE.BoxGeometry(7, 0.4, 4.5), 0x8d6e63, 0, 2.5, 0));
+stall.add(mesh(new THREE.BoxGeometry(7.8, 0.35, 5.2), 0xe74c3c, 0, 4.4, 0));
+[-3, 3].forEach(x => { [-2, 2].forEach(z => stall.add(mesh(new THREE.CylinderGeometry(0.16,0.16,4,8), 0x6d4c41, x, 2, z))); });
+stall.add(mesh(new THREE.BoxGeometry(7, 1.7, 0.35), 0xa1887f, 0, 0.85, 2.1));
+const shopSign = makeLabel('🛒 BRAINROT SHOP', '#ffe066');
+shopSign.position.set(0, 5.8, 0); shopSign.scale.multiplyScalar(1.7);
+stall.add(shopSign);
+stall.position.set(-116, 0, 0);
+scene.add(stall);
+
+// pond
+const pond = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 0.15, 28),
+  new THREE.MeshStandardMaterial({ color: 0x4aa8e8, roughness: 0.15, metalness: 0.4 }));
+pond.position.set(38, 0.08, -34);
+scene.add(pond);
+for (let i = 0; i < 9; i++) {
+  const a = i/9 * Math.PI * 2;
+  const rock = mesh(new THREE.DodecahedronGeometry(0.7 + Math.random()*0.6), 0x8d99ae,
+    38 + Math.cos(a)*11.5, 0.3, -34 + Math.sin(a)*11.5);
+  rock.scale.y = 0.6; scene.add(rock);
+}
+
+// trees / flowers / rocks scatter
+const blocked = p => (Math.abs(p[1]) < 7 && Math.abs(p[0]) < 128) ||
+  Math.hypot(p[0]-38, p[1]+34) < 15;
+for (let i = 0; i < 46; i++) {
+  const p = [Math.random()*260-130, Math.random()*260-130];
+  if (blocked(p)) continue;
+  const t = new THREE.Group();
+  t.add(mesh(new THREE.CylinderGeometry(0.28, 0.42, 1.8, 8), 0x795548, 0, 0.9, 0));
+  t.add(mesh(new THREE.ConeGeometry(1.8, 3.4, 9), 0x2e7d32, 0, 3.2, 0));
+  t.add(mesh(new THREE.ConeGeometry(1.3, 2.4, 9), 0x388e3c, 0, 4.8, 0));
+  t.position.set(p[0], 0, p[1]);
+  t.rotation.y = Math.random()*6;
+  const s = 0.8 + Math.random()*0.7; t.scale.set(s, s, s);
+  scene.add(t);
+}
+for (let i = 0; i < 160; i++) {
+  const p = [Math.random()*260-130, Math.random()*260-130];
+  if (blocked(p)) continue;
+  const f = new THREE.Group();
+  const cols = [0xff6b9d, 0xffe066, 0xff8c42, 0xc56cf0, 0xffffff];
+  f.add(mesh(new THREE.SphereGeometry(0.12, 6, 6), cols[i % 5], 0, 0.28, 0));
+  f.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.28, 4), 0x2e7d32, 0, 0.12, 0));
+  f.position.set(p[0], 0, p[1]);
+  scene.add(f);
+}
+// fluffy clouds
+const clouds = [];
+for (let i = 0; i < 9; i++) {
+  const c = new THREE.Group();
+  const m = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 });
+  for (let j = 0; j < 4; j++) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(3 - j*0.5, 10, 10), m);
+    s.position.set(j*3.4 - 5, Math.sin(j)*0.7, (j%2)*1.4);
+    s.castShadow = false;
+    c.add(s);
+  }
+  c.position.set(Math.random()*300-150, 40 + Math.random()*22, Math.random()*300-150);
+  scene.add(c); clouds.push(c);
+}
+
+// ---------------- bases around a wide circle ----------------
+const bases = [];
+for (let i = 0; i < TOTAL_SLOTS; i++) {
+  const a = Math.PI/2 + (i + 0.5) * (Math.PI*2/TOTAL_SLOTS);
+  const cx = Math.cos(a) * WORLD_R, cz = Math.sin(a) * WORLD_R;
+  const g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+  g.rotation.y = Math.atan2(-cx, -cz);
+  const plat = new THREE.Mesh(new THREE.BoxGeometry(27, 0.7, 17),
+    new THREE.MeshStandardMaterial({ map: concTex, roughness: 0.9 }));
+  plat.position.y = 0.35; plat.receiveShadow = true; plat.castShadow = true;
+  g.add(plat);
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(28, 0.25, 18),
+    new THREE.MeshStandardMaterial({ color: 0x666e78, roughness: 1 }));
+  rim.position.y = 0.12; g.add(rim);
+  const plotPos = [], plotMeshes = [], rings = [];
+  for (const lz of [-4, 4]) for (const lx of [-8, 0, 8]) {
+    const wp = new THREE.Vector3(lx, 0.72, lz).applyAxisAngle(new THREE.Vector3(0,1,0), g.rotation.y).add(g.position);
+    plotPos.push(wp);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.12, 24),
+      new THREE.MeshStandardMaterial({ color: 0x3a4149, roughness: 0.8 }));
+    disc.position.set(lx, 0.72, lz); disc.receiveShadow = true;
+    g.add(disc);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.1, 10, 32),
+      new THREE.MeshStandardMaterial({ color: 0xb8c4cc, emissive: 0x222222 }));
+    ring.rotation.x = Math.PI/2; ring.position.set(lx, 0.79, lz);
+    g.add(ring);
+    plotMeshes.push(disc); rings.push(ring);
+  }
+  const sign = makeLabel('🏠 BASE ' + (i+1), '#ffffff');
+  sign.position.set(0, 7.2, 0); sign.scale.multiplyScalar(1.3);
+  g.add(sign);
+  scene.add(g);
+  bases.push({ group: g, plotPos, rings, sign, ownerName: null, ownerColor: null });
+}
+
+// ---------------- helpers ----------------
+function mesh(geo, color, x=0, y=0, z=0) {
+  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color }));
+  m.position.set(x, y, z); m.castShadow = true;
+  return m;
+}
+function addEyes(g, y, z, spread, r) {
+  const wm = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+  const bm = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.4 });
+  [-spread, spread].forEach(x => {
+    const w = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), wm);
+    w.position.set(x, y, z); g.add(w);
+    const p = new THREE.Mesh(new THREE.SphereGeometry(r*0.48, 10, 10), bm);
+    p.position.set(x, y, z + r*0.72); g.add(p);
+  });
+}
+function addFeet(g, color, spread, size, y) {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+  const l = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 10), m);
+  l.position.set(-spread, y, 0); l.scale.y = 0.7; g.add(l);
+  const r = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 10), m);
+  r.position.set(spread, y, 0); r.scale.y = 0.7; g.add(r);
+  return { l, r };
+}
+function makeLabel(text, cssColor) {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  const fs = 42;
+  ctx.font = 'bold ' + fs + 'px Arial';
+  c.width = Math.ceil(ctx.measureText(text).width) + 40;
+  c.height = fs + 28;
+  ctx.font = 'bold ' + fs + 'px Arial';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = cssColor; ctx.fillText(text, c.width/2, c.height/2 + 2);
+  const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  spr.scale.set(c.width/85, c.height/85, 1);
+  return spr;
+}
+
+// ---------------- brainrot models ----------------
+function makeNoobini() {
+  const g = new THREE.Group();
+  const slice = mesh(new THREE.ConeGeometry(1.4, 0.5, 3), 0xf2c14e);
+  slice.rotation.x = Math.PI/2; slice.scale.set(1.1, 1, 1.5); slice.position.y = 0.9; g.add(slice);
+  const crust = mesh(new THREE.CylinderGeometry(0.26, 0.26, 1.7, 10), 0xd98e32);
+  crust.rotation.z = Math.PI/2; crust.position.set(0, 1.02, -0.8); g.add(crust);
+  [[0.38,1.19,0.1],[-0.32,1.19,0.28],[0.05,1.19,-0.28]].forEach(p =>
+    g.add(mesh(new THREE.CylinderGeometry(0.14,0.14,0.08,12), 0xc0392b, p[0], p[1], p[2])));
+  addEyes(g, 1.05, 0.78, 0.34, 0.16);
+  return { g, feet: addFeet(g, 0xd98e32, 0.42, 0.17, 0.14) };
+}
+function makeTalpa() {
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.SphereGeometry(0.78, 16, 14), 0x9c7a5b, 0, 0.8, 0));
+  g.add(mesh(new THREE.SphereGeometry(0.46, 14, 12), 0xcbb29a, 0, 0.66, 0.46));
+  const snout = mesh(new THREE.ConeGeometry(0.2, 0.5, 12), 0xb89a7e);
+  snout.rotation.x = Math.PI/2; snout.position.set(0, 0.78, 0.9); g.add(snout);
+  g.add(mesh(new THREE.SphereGeometry(0.1, 10, 10), 0xf4a7b9, 0, 0.78, 1.18));
+  [-1, 1].forEach(s => {
+    const claw = mesh(new THREE.ConeGeometry(0.13, 0.45, 8), 0xe8dcc8);
+    claw.rotation.x = Math.PI; claw.position.set(0.58*s, 0.24, 0.5); g.add(claw);
+  });
+  addEyes(g, 1.14, 0.6, 0.3, 0.14);
+  return { g, feet: addFeet(g, 0x8d6e63, 0.4, 0.16, 0.14) };
+}
+function makeCappuccina() {
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.CylinderGeometry(0.58, 0.42, 0.95, 16), 0xffffff, 0, 1.05, 0));
+  g.add(mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.09, 16), 0x6f4e37, 0, 1.55, 0));
+  const tutu = mesh(new THREE.ConeGeometry(0.9, 0.4, 16), 0xf78fb3);
+  tutu.position.y = 0.66; g.add(tutu);
+  [-1, 1].forEach(s => {
+    g.add(mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.55, 8), 0xffffff, 0.2*s, 0.3, 0));
+    const arm = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.65, 8), 0xffffff);
+    arm.rotation.z = 1.0*s; arm.position.set(0.65*s, 1.2, 0); g.add(arm);
+  });
+  addEyes(g, 1.18, 0.55, 0.22, 0.13);
+  return { g, feet: addFeet(g, 0xf78fb3, 0.24, 0.14, 0.1) };
+}
+function makeBombardiro() {
+  const g = new THREE.Group();
+  const body = mesh(new THREE.SphereGeometry(0.82, 16, 14), 0x6aa84f);
+  body.scale.set(1.65, 0.78, 0.9); body.position.y = 1.0; g.add(body);
+  g.add(mesh(new THREE.BoxGeometry(0.75, 0.32, 0.4), 0x588c3f, 0, 0.9, 1.0));
+  const tail = mesh(new THREE.ConeGeometry(0.3, 1.0, 10), 0x588c3f);
+  tail.rotation.x = -Math.PI/2; tail.position.set(0, 1.03, -1.35); g.add(tail);
+  [-1, 1].forEach(s => {
+    const wing = mesh(new THREE.BoxGeometry(0.28, 0.09, 1.2), 0xbfc7cf);
+    wing.position.set(1.0*s, 1.32, 0); g.add(wing);
+  });
+  const fin = mesh(new THREE.BoxGeometry(0.09, 0.55, 0.65), 0xbfc7cf);
+  fin.position.set(0, 1.65, -0.5); g.add(fin);
+  addEyes(g, 1.35, 0.68, 0.26, 0.14);
+  return { g, feet: addFeet(g, 0x588c3f, 0.4, 0.15, 0.12) };
+}
+function makeTung() {
+  const g = new THREE.Group();
+  const body = mesh(new THREE.CylinderGeometry(0.5, 0.62, 1.5, 12), 0xd9a05b);
+  body.position.y = 1.05; g.add(body);
+  const hat = mesh(new THREE.ConeGeometry(0.62, 0.9, 12), 0x8d5a2b);
+  hat.position.y = 2.2; g.add(hat);
+  [-1, 1].forEach(s => {
+    const stick = mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6), 0x6d4c41);
+    stick.rotation.z = 0.5*s; stick.position.set(0.6*s, 1.3, 0.15); g.add(stick);
+    const drum = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.3, 10), 0xc0392b);
+    drum.rotation.z = Math.PI/2; drum.position.set(0.85*s, 1.75, 0.3); g.add(drum);
+  });
+  addEyes(g, 1.35, 0.52, 0.2, 0.12);
+  return { g, feet: addFeet(g, 0x8d5a2b, 0.3, 0.15, 0.12) };
+}
+
+// build a full brainrot rig (model + rarity ring + label)
+function buildBrainrot(def, labelText) {
+  const root = new THREE.Group();
+  const m = def.make();
+  root.add(m.g);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.08, 10, 28),
+    new THREE.MeshStandardMaterial({ color: RARITY[def.rarity].color,
+      emissive: RARITY[def.rarity].color, emissiveIntensity: 0.35 }));
+  ring.rotation.x = Math.PI/2; ring.position.y = 0.06;
+  root.add(ring);
+  const label = makeLabel(labelText || def.name, RARITY[def.rarity].css);
+  label.position.y = 2.5;
+  root.add(label);
+  return { root, body: m.g, feet: m.feet, ring, label };
+}
+
+// ---------------- wild brainrots on the red road ----------------
+function spawnWild(def, startX) {
+  const b = buildBrainrot(def);
+  b.root.position.set(startX ?? -118, 0.2, (Math.random()*2 - 1));
+  scene.add(b.root);
+  const w = { kind:'wild', def, ...b, phase: Math.random()*6, speed: 2 + Math.random()*1.3 };
+  b.root.userData.ref = { kind:'wild', w };
+  wilds.push(w);
+  return w;
+}
+function pickDef() {
+  const total = DEFS.reduce((s, d) => s + d.weight, 0);
+  let r = Math.random() * total;
+  for (const d of DEFS) { r -= d.weight; if (r <= 0) return d; }
+  return DEFS[0];
+}
+for (let i = 0; i < 7; i++) spawnWild(pickDef(), -110 + i*15 + Math.random()*5);
+
+// ---------------- avatars (remote players & bots) ----------------
+function makeAvatar(name, cssColor) {
+  const g = new THREE.Group();
+  const col = new THREE.Color(cssColor);
+  const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 1.15, 14), mat);
+  body.position.y = 1.05; body.castShadow = true; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 14),
+    new THREE.MeshStandardMaterial({ color: 0xffd9b3, roughness: 0.6 }));
+  head.position.y = 2.0; head.castShadow = true; g.add(head);
+  addEyes(head, 0.1, 0.36, 0.17, 0.1);
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.9 });
+  const legs = [];
+  [-0.2, 0.2].forEach(x => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.6, 8), legMat);
+    leg.position.set(x, 0.32, 0); g.add(leg); legs.push(leg);
+  });
+  // BAT 🏏
+  const bat = new THREE.Group();
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.5, 8),
+    new THREE.MeshStandardMaterial({ color: 0x6d4c41 }));
+  handle.position.y = 0.25; bat.add(handle);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.06, 0.95, 10),
+    new THREE.MeshStandardMaterial({ color: 0xd9b382, roughness: 0.5 }));
+  barrel.position.y = 0.95; bat.add(barrel);
+  bat.position.set(0.62, 1.15, 0.15);
+  bat.rotation.x = -0.4;
+  g.add(bat);
+  const label = makeLabel(name, cssColor);
+  label.position.y = 3.0;
+  g.add(label);
+  scene.add(g);
+  return { group: g, body, head, legs, bat, label, walkPhase: 0 };
+}
+
+// ---------------- remotes & bots ----------------
+const remotes = {};
+function addRemote(id, info) {
+  if (remotes[id]) return remotes[id];
+  const r = {
+    id, name: info.name, color: info.color, baseIndex: info.baseIndex, isBot: !!info.isBot,
+    avatar: makeAvatar(info.name + (info.isBot ? ' 🤖' : ''), info.color),
+    ownedGroup: new THREE.Group(), owned: [], carryName: null, carryUid: null, carryModel: null,
+    pos: bases[info.baseIndex].group.position.clone().add(new THREE.Vector3(0, 0, 6)),
+    yaw: 0, swingT: 0, knock: new THREE.Vector3(),
+  };
+  scene.add(r.ownedGroup);
+  remotes[id] = r;
+  bases[info.baseIndex].ownerName = info.name;
+  bases[info.baseIndex].ownerColor = info.color;
+  refreshBaseSign(info.baseIndex);
+  updatePlayerList();
+  return r;
+}
+function removeRemote(id) {
+  const r = remotes[id]; if (!r) return;
+  scene.remove(r.avatar.group); scene.remove(r.ownedGroup);
+  bases[r.baseIndex].ownerName = null; refreshBaseSign(r.baseIndex);
+  delete remotes[id];
+  updatePlayerList();
+}
+function refreshBaseSign(i) {
+  const b = bases[i];
+  b.group.remove(b.sign);
+  b.sign = makeLabel(b.ownerName ? ('🏠 ' + b.ownerName + (i === myBase ? ' (YOU)' : '')) : ('🏠 BASE ' + (i+1)),
+    b.ownerColor || '#ffffff');
+  b.sign.position.set(0, 7.2, 0); b.sign.scale.multiplyScalar(1.3);
+  b.group.add(b.sign);
+}
+// rebuild the brainrot models standing on a remote base
+function rebuildRemoteBase(id) {
+  const r = remotes[id]; if (!r) return;
+  while (r.ownedGroup.children.length) {
+    const c = r.ownedGroup.children[0];
+    r.ownedGroup.remove(c);
+  }
+  const base = bases[r.baseIndex];
+  r.owned.forEach(o => {
+    if (o.plot === null || o.plot === undefined) return;
+    const def = DEFS.find(d => d.name === o.defName); if (!def) return;
+    const b = buildBrainrot(def);
+    b.root.position.copy(base.plotPos[o.plot]);
+    b.root.userData.ref = { kind:'remote', uid: o.uid, owner: id, def };
+    r.ownedGroup.add(b.root);
+  });
+}
+function setRemoteCarry(r, defName, uid) {
+  if (r.carryModel) { r.avatar.group.remove(r.carryModel.root); r.carryModel = null; }
+  r.carryName = defName; r.carryUid = uid;
+  if (defName) {
+    const def = DEFS.find(d => d.name === defName); if (!def) return;
+    const b = buildBrainrot(def, '🥷 ' + defName);
+    b.root.scale.setScalar(0.55);
+    b.root.position.set(0, 2.9, -0.4);
+    r.avatar.group.add(b.root);
+    r.carryModel = b;
+  }
+}
+
+// ---------------- bots (run on host) ----------------
+function initBots() {
+  for (let i = 0; i < 3; i++) {
+    const idx = 7 + i;
+    const r = addRemote('bot' + i, { name: BOT_NAMES[i], color: COLORS[idx], baseIndex: idx, isBot: true });
+    r.cash = 150; r.buyT = 3 + i * 4; r.wanderT = 0; r.wt = null;
+  }
+}
+function hostBotUpdate(dt) {
+  for (const id in remotes) {
+    const r = remotes[id];
+    if (!r.isBot) continue;
+    let inc = 0;
+    r.owned.forEach(o => { if (o.state === 'placed') inc += (DEFS.find(d => d.name === o.defName) || DEFS[0]).income; });
+    r.cash += inc * dt;
+    r.buyT -= dt;
+    if (r.buyT <= 0) {
+      r.buyT = 5 + Math.random() * 7;
+      const affordable = DEFS.filter(d => d.cost <= r.cash);
+      if (affordable.length && r.owned.length < 6) {
+        const d = affordable[Math.random() < 0.6 ? 0 : Math.floor(Math.random()*affordable.length)];
+        r.cash -= d.cost;
+        const plot = r.owned.length;
+        r.owned.push({ uid: id + '-' + Math.random().toString(36).slice(2, 8), defName: d.name, plot, state: 'placed' });
+        rebuildRemoteBase(id);
+        if (NET.online) hostBroadcast({ t:'state', id, owned: r.owned, cash: Math.floor(r.cash) });
+      }
+    }
+    // wander near base
+    r.wanderT -= dt;
+    const home = bases[r.baseIndex].group.position;
+    if (r.wanderT <= 0 || !r.wt) {
+      r.wanderT = 4 + Math.random() * 5;
+      r.wt = home.clone().add(new THREE.Vector3(Math.random()*20-10, 0, Math.random()*20-10));
+    }
+    const dir = r.wt.clone().sub(r.pos); dir.y = 0;
+    if (dir.length() > 0.4) {
+      dir.normalize();
+      r.pos.add(dir.multiplyScalar(2.4 * dt));
+      r.yaw = Math.atan2(dir.x, dir.z);
+      r.walkPhase += dt * 7;
+    }
+    r.pos.add(r.knock.clone().multiplyScalar(dt));
+    r.knock.x *= Math.max(0, 1 - dt*4); r.knock.z *= Math.max(0, 1 - dt*4);
+    if (r.pos.y > 0 || r.knock.y !== 0) {
+      r.pos.y += r.knock.y * dt; r.knock.y -= 22 * dt;
+      if (r.pos.y <= 0) { r.pos.y = 0; r.knock.y = 0; }
+    }
+  }
+}
+
+// ---------------- networking (PeerJS star topology, host = relay) ----------------
+const NET = { online:false, host:false, ready:false, peer:null, conns:{}, room:null,
+  send(msg) { if (NET.host) { for (const k in NET.conns) { try { NET.conns[k].send(msg); } catch(e){} } }
+             else if (NET.hostConn) { try { NET.hostConn.send(msg); } catch(e){} } },
+  broadcastOthers(exceptId, msg) { for (const k in NET.conns) { if (k !== exceptId) { try { NET.conns[k].send(msg); } catch(e){} } } },
+  hostBroadcast(msg) { if (!NET.host) return; handleNet(msg, 'host'); NET.send(msg); },
+  hostConn: null };
+function hostBroadcast(m){ NET.hostBroadcast(m); }
+function playerCount() { let n = 1; for (const k in remotes) if (!remotes[k].isBot) n++; return n; }
+function nextFreeSlot() { for (let i = 0; i < 7; i++) { const taken = i === myBase || Object.values(remotes).some(r => r.baseIndex === i); if (!taken) return i; } return -1; }
+
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function makeCode() { let s = ''; for (let i = 0; i < 4; i++) s += CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)]; return s; }
+
+function createRoom() {
+  if (typeof Peer === 'undefined') { toast('PeerJS failed to load — check connection'); return; }
+  const code = makeCode();
+  const peer = new Peer('sab26-' + code);
+  $('btnCreate').textContent = '⏳ Creating…';
+  peer.on('open', () => {
+    NET.online = true; NET.host = true; NET.peer = peer; NET.room = code;
+    $('preMenu').classList.add('hidden');
+    $('postMenu').classList.remove('hidden');
+    $('codeDisplay').textContent = code;
+    const link = location.origin + location.pathname + '?room=' + code;
+    $('shareLink').textContent = link;
+    $('btnCreate').textContent = '🌐 CREATE ONLINE ROOM';
+    toast('Room created! Share the link.');
+  });
+  peer.on('connection', conn => {
+    conn.on('open', () => {
+      NET.conns[conn.peer] = conn;
+      conn.on('data', d => handleNet(d, conn.peer));
+      conn.on('close', () => { handleLeave(conn.peer); delete NET.conns[conn.peer]; });
+    });
+  });
+  peer.on('error', e => {
+    $('btnCreate').textContent = '🌐 CREATE ONLINE ROOM';
+    if (e.type === 'unavailable-id') toast('Code collision — try again'); else toast('Network error: ' + e.type);
+  });
+}
+function joinRoom(code) {
+  if (typeof Peer === 'undefined') { toast('PeerJS failed to load — check connection'); return; }
+  code = code.toUpperCase().trim();
+  if (code.length < 4) { toast('Enter the 4-letter room code'); return; }
+  const peer = new Peer();
+  $('btnJoin').textContent = '⏳';
+  peer.on('open', () => {
+    const conn = peer.connect('sab26-' + code, { reliable: true });
+    NET.peer = peer; NET.online = true; NET.host = false; NET.hostConn = conn; NET.room = code;
+    conn.on('open', () => {
+      conn.send({ t:'hello', name: myName, color: myColor });
+      $('btnJoin').textContent = 'JOIN';
+      $('overlay').classList.add('hidden');
+      started = true;
+      toast('Joined room ' + code + '!');
+    });
+    conn.on('data', d => handleNet(d, 'host'));
+    conn.on('close', () => toast('Disconnected from host'));
+  });
+  peer.on('error', e => {
+    $('btnJoin').textContent = 'JOIN';
+    if (e.type === 'peer-unavailable') toast('Room not found — check the code!');
+    else toast('Network error: ' + e.type);
+  });
+}
+function handleLeave(id) {
+  if (remotes[id]) { toast(remotes[id].name + ' left'); removeRemote(id); }
+  NET.broadcastOthers(null, { t:'leave', id });
+}
+function handleNet(m, fromId) {
+  if (!m || !m.t) return;
+  switch (m.t) {
+    case 'hello': { // host receives
+      const slot = nextFreeSlot();
+      if (slot === -1) { try { NET.conns[fromId].send({ t:'full' }); } catch(e){} return; }
+      const info = { name: String(m.name).slice(0,14) || 'Player', color: m.color, baseIndex: slot, id: fromId };
+      NET.send({ t:'join', info });
+      const joinerConn = NET.conns[fromId];
+      const players = [{ id: myId, name: myName, color: myColor, baseIndex: myBase }];
+      for (const k in remotes) players.push({ id: k, name: remotes[k].name, color: remotes[k].color, baseIndex: remotes[k].baseIndex, isBot: remotes[k].isBot });
+      try { joinerConn.send({ t:'welcome', you: info, players }); } catch(e){}
+      addRemote(fromId, info);
+      refreshRoomBar();
+      break; }
+    case 'welcome': {
+      const oldBase = myBase;
+      bases[oldBase].ownerName = null; refreshBaseSign(oldBase);
+      myId = m.you.id; myBase = m.you.baseIndex; myColor = m.you.color;
+      bases[myBase].ownerName = myName; bases[myBase].ownerColor = myColor; refreshBaseSign(myBase);
+      m.players.forEach(p => { if (p.id !== myId) addRemote(p.id, p); });
+      const sp = bases[myBase].group.position;
+      player.pos.set(sp.x, 1.7, sp.z + 8);
+      NET.ready = true;
+      refreshRoomBar();
+      break; }
+    case 'join': addRemote(m.info.id, m.info); toast('🎉 ' + m.info.name + ' joined!'); refreshRoomBar(); break;
+    case 'leave': removeRemote(m.id); refreshRoomBar(); break;
+    case 'pos': {
+      const r = remotes[m.id]; if (r) {
+        r.pos.set(m.p[0], m.p[1], m.p[2]); r.yaw = m.yaw;
+        if (m.swing && performance.now() - (r.lastSwing || 0) > 400) { r.swingT = 0.3; r.lastSwing = performance.now(); }
+        if (m.carry !== undefined && (m.carry !== r.carryName || m.cuid !== r.carryUid)) setRemoteCarry(r, m.carry, m.cuid);
+      }
+      if (NET.host && fromId !== 'host') NET.broadcastOthers(fromId, m);
+      break; }
+    case 'state': {
+      const r = remotes[m.id];
+      if (r) { r.owned = m.owned || []; r.cashNet = m.cash; rebuildRemoteBase(m.id); }
+      if (NET.host && fromId !== 'host') NET.broadcastOthers(fromId, m);
+      break; }
+    case 'steal': {
+      if (remotes[m.victim] && remotes[m.victim].isBot) {
+        const b = remotes[m.victim];
+        const bo = b.owned.find(x => x.uid === m.uid);
+        if (bo) {
+          b.owned.splice(b.owned.indexOf(bo), 1);
+          b.owned.forEach((x, i) => x.plot = i);
+          rebuildRemoteBase(m.victim);
+          if (NET.host) {
+            NET.broadcastOthers(fromId, m);
+            NET.send({ t:'state', id: m.victim, cash: Math.floor(b.cash || 0), owned: b.owned });
+          }
+        }
+        break;
+      }
+      if (m.victim !== myId) break;
+      const o = owned.find(x => x.uid === m.uid && x.state === 'placed');
+      if (o) {
+        removeOwned(o, false);
+        redFlash();
+        toast('🚨 ' + (remotes[m.thief] ? remotes[m.thief].name : 'Someone') + ' STOLE your ' + o.def.name + '! Chase them!');
+        beep(880, 0.1); setTimeout(() => beep(660, 0.15), 120);
+      } else if (NET.online) {
+        NET.send({ t:'stealDeny', uid: m.uid, to: m.thief });
+      }
+      break; }
+    case 'stealDeny': {
+      if (NET.host) NET.broadcastOthers(fromId, m);
+      if (m.to === myId && carriedObj && carriedObj.uid === m.uid && carriedObj.stolen) {
+        removeOwned(carriedObj, false); carriedObj = null;
+        toast('The owner grabbed it back!');
+      }
+      break; }
+    case 'hit': {
+      if (m.target === myId) gotPunched(m.from);
+      else if (NET.host) {
+        const rb = remotes[m.target];
+        if (rb && rb.isBot) {
+          const d = new THREE.Vector3(rb.pos.x - m.from[0], 0, rb.pos.z - m.from[1]).normalize();
+          rb.knock.add(d.multiplyScalar(9)); rb.knock.y = 5;
+          spawnParticles(rb.pos.clone().add(new THREE.Vector3(0, 1.4, 0)), 0xffe066);
+        }
+        NET.broadcastOthers(fromId, m);
+      }
+      break; }
+    case 'return': {
+      if (NET.host) NET.broadcastOthers(fromId, m);
+      if (m.orig === myId) {
+        if (!owned.some(x => x.uid === m.uid)) {
+          const def = DEFS.find(d => d.name === m.defName); if (!def) break;
+          const plot = plotOwner.indexOf(null);
+          if (plot !== -1) {
+            const o = createOwned(def, plot, m.uid);
+            toast('🛡 Your ' + def.name + ' was knocked loose and returned to your base!');
+          }
+        }
+      }
+      const r = remotes[m.thief];
+      if (r && r.carryUid === m.uid) setRemoteCarry(r, null, null);
+      break; }
+    case 'full': toast('Room is full!'); break;
+  }
+}
+
+// ---------------- player ----------------
+const player = { pos: new THREE.Vector3(0, 1.7, WORLD_R + 10), yaw: Math.PI, pitch: 0, vy: 0,
+  knock: new THREE.Vector3(), swingT: 0, swingCd: 0, shakeT: 0 };
+const keys = {};
+let locked = false;
+
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyI') toggleIndex();
+  if (e.code === 'KeyF') swingBat();
+});
+addEventListener('keyup', e => keys[e.code] = false);
+document.addEventListener('mousemove', e => {
+  if (!locked) return;
+  player.yaw -= e.movementX * 0.0022;
+  player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - e.movementY * 0.0022));
+});
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === renderer.domElement;
+  if (started && !locked && !anyPopup() ) showPause();
+});
+addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (carriedObj || moveObj) { cancelModes(); toast('Cancelled'); }
+  else swingBat();
+});
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+function lockPointer() { renderer.domElement.requestPointerLock(); }
+
+// ---------------- raycast interaction ----------------
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+renderer.domElement.addEventListener('mousedown', e => {
+  if (!locked) { lockPointer(); return; }
+  if (e.button !== 0) return;
+  ndc.set((e.clientX/innerWidth)*2 - 1, -(e.clientY/innerHeight)*2 + 1);
+  ray.setFromCamera(ndc, camera);
+
+  const roots = wilds.map(w => w.root).concat(owned.map(o => o.root));
+  for (const id in remotes) roots.push(remotes[id].ownedGroup);
+  let hits = ray.intersectObjects(roots, true);
+  if (hits.length) {
+    let obj = hits[0].object;
+    while (obj && !obj.userData.ref) obj = obj.parent;
+    if (obj) {
+      const ref = obj.userData.ref;
+      cancelModes(); closePopups();
+      if (ref.kind === 'wild') openBuy(ref.w);
+      else if (ref.kind === 'own') openManage(ref.o);
+      else if (ref.kind === 'remote') openSteal(ref);
+      return;
+    }
+  }
+  if (carriedObj || moveObj) {
+    const pads = [];
+    bases[myBase].rings.forEach(r => pads.push(r));
+    bases[myBase].group.children.forEach(c => { if (c.geometry && c.geometry.type === 'CylinderGeometry' && c.geometry.parameters.radiusTop === 1.9) pads.push(c); });
+    hits = ray.intersectObjects(pads, false);
+    if (hits.length) {
+      const wp = new THREE.Vector3(); hits[0].object.getWorldPosition(wp);
+      let best = 0, bd = 1e9;
+      bases[myBase].plotPos.forEach((p, i) => { const d = p.distanceTo(wp); if (d < bd) { bd = d; best = i; } });
+      placeOnPlot(best);
+      return;
+    }
+  }
+  closePopups();
+});
+
+// ---------------- popups ----------------
+function anyPopup() {
+  return !$('buyPopup').classList.contains('hidden') || !$('stealPopup').classList.contains('hidden') ||
+         !$('managePopup').classList.contains('hidden') || !$('indexPanel').classList.contains('hidden');
+}
+function openBuy(w) {
+  buyTarget = w;
+  $('buyName').textContent = w.def.name;
+  $('buyName').style.color = RARITY[w.def.rarity].css;
+  $('buyInfo').innerHTML = '<span class="rarityBadge" style="color:' + RARITY[w.def.rarity].css + '">' +
+    w.def.rarity.toUpperCase() + '</span> earns <b style="color:#7CFC98">$' + w.def.income +
+    '/sec</b> · costs <b style="color:#ffe066">$' + w.def.cost + '</b>';
+  $('buyPopup').classList.remove('hidden');
+  document.exitPointerLock();
+}
+function openSteal(ref) {
+  stealRef = ref;
+  const ownerName = (remotes[ref.owner] || {}).name || '???';
+  $('stealName').textContent = '🥷 Steal ' + ref.def.name + '?';
+  $('stealName').style.color = RARITY[ref.def.rarity].css;
+  $('stealInfo').innerHTML = 'From <b>' + ownerName + '</b>\'s base! Grab it and run —<br>' +
+    '<b style="color:#7CFC98">$' + ref.def.income + '/sec</b> · if you get punched, you drop it!';
+  $('stealPopup').classList.remove('hidden');
+  document.exitPointerLock();
+}
+function openManage(o) {
+  managed = o;
+  $('mgName').textContent = o.def.name;
+  $('mgName').style.color = RARITY[o.def.rarity].css;
+  const st = o.state === 'carried' ? 'carried' : (o.state === 'moving' ? 'walking…' : 'on plot ' + (o.plot+1));
+  $('mgInfo').innerHTML = '<span class="rarityBadge" style="color:' + RARITY[o.def.rarity].css + '">' +
+    o.def.rarity.toUpperCase() + '</span> earns <b style="color:#7CFC98">$' + o.def.income +
+    '/sec</b> · ' + st + ' · sell +$' + Math.floor(o.def.cost*0.25);
+  $('managePopup').classList.remove('hidden');
+  document.exitPointerLock();
+}
+function closePopups() {
+  ['buyPopup','stealPopup','managePopup'].forEach(i => $(i).classList.add('hidden'));
+  buyTarget = null; managed = null; stealRef = null;
+}
+function cancelModes() { carriedObj = null; moveObj = null; }
+
+$('btnBuy').onclick = () => {
+  if (!buyTarget) return;
+  const w = buyTarget;
+  if (cash < w.def.cost) { toast('Not enough cash!'); beep(160, 0.15); return; }
+  const plot = plotOwner.indexOf(null);
+  if (plot === -1) { toast('No free plots!'); beep(160, 0.15); return; }
+  cash -= w.def.cost;
+  wilds.splice(wilds.indexOf(w), 1);
+  const o = adoptWild(w, plot);
+  toast('Bought ' + w.def.name + '!');
+};
+$('btnCloseB').onclick = closePopups;
+$('btnCloseS').onclick = closePopups;
+$('btnSteal').onclick = () => {
+  if (!stealRef) return;
+  const ref = stealRef;
+  const r = remotes[ref.owner];
+  if (!r) { closePopups(); return; }
+  // optimistic grab — victim removes theirs on 'steal' message
+  const o = createOwned(ref.def, null, ref.uid, ref.owner);
+  o.state = 'carried'; o.stolen = true; carriedObj = o;
+  if (NET.online) NET.send({ t:'steal', uid: ref.uid, thief: myId, victim: ref.owner });
+  if (remotes[ref.owner] && remotes[ref.owner].isBot && NET.host)
+    handleNet({ t:'steal', uid: ref.uid, thief: myId, victim: ref.owner }, 'host');
+  closePopups();
+  beep(500, 0.08); setTimeout(() => beep(750, 0.1), 90);
+  toast('🥷 You grabbed ' + ref.def.name + '! RUN back to your base!');
+};
+$('btnCloseM').onclick = closePopups;
+$('btnPick').onclick = () => {
+  if (!managed) return;
+  const o = managed;
+  if (o.plot !== null) { plotOwner[o.plot] = null; o.plot = null; }
+  o.state = 'carried'; carriedObj = o;
+  closePopups();
+  toast('Carrying ' + o.def.name + ' — click a plot on YOUR base to place it');
+};
+$('btnMove').onclick = () => {
+  if (!managed) return;
+  moveObj = managed;
+  closePopups();
+  toast('Click the target plot');
+};
+$('btnDelete').onclick = () => {
+  if (!managed) return;
+  const refund = Math.floor(managed.def.cost * 0.25);
+  cash += refund;
+  removeOwned(managed, false);
+  closePopups(); beep(220, 0.12);
+  toast('Sold ' + managed.def.name + ' for $' + refund);
+};
+
+// owned object management
+let uidCounter = 0;
+function createOwned(def, plot, uid, origOwner) {
+  const b = buildBrainrot(def);
+  scene.add(b.root);
+  const o = { kind:'own', uid: uid || (myId + '-' + (uidCounter++) + '-' + Math.random().toString(36).slice(2,6)),
+    def, ...b, plot, state: plot !== null && plot !== undefined ? 'moving' : 'carried',
+    target: plot !== null && plot !== undefined ? bases[myBase].plotPos[plot].clone() : null,
+    phase: Math.random()*6, stolen: false, orig: origOwner || null };
+  b.root.userData.ref = { kind:'own', o };
+  if (plot !== null && plot !== undefined) plotOwner[plot] = o;
+  owned.push(o);
+  return o;
+}
+function adoptWild(w, plot) {
+  const o = { kind:'own', uid: myId + '-' + (uidCounter++) + '-' + Math.random().toString(36).slice(2,6),
+    def: w.def, root: w.root, body: w.body, feet: w.feet, ring: w.ring, label: w.label,
+    plot, state: 'moving', target: bases[myBase].plotPos[plot].clone(), phase: w.phase, stolen: false, orig: null };
+  w.root.userData.ref = { kind:'own', o };
+  plotOwner[plot] = o;
+  owned.push(o);
+  return o;
+}
+function removeOwned(o, keepMesh) {
+  if (o.plot !== null && o.plot !== undefined && plotOwner[o.plot] === o) plotOwner[o.plot] = null;
+  if (carriedObj === o) carriedObj = null;
+  if (moveObj === o) moveObj = null;
+  if (managed === o) managed = null;
+  if (!keepMesh) scene.remove(o.root);
+  owned.splice(owned.indexOf(o), 1);
+}
+function placeOnPlot(idx) {
+  const o = carriedObj || moveObj;
+  if (!o) return;
+  carriedObj = null; moveObj = null;
+  const other = plotOwner[idx];
+  if (other && other !== o) {
+    const old = o.plot;
+    plotOwner[idx] = o; o.plot = idx;
+    if (old !== null) { plotOwner[old] = other; other.plot = old; other.state = 'moving'; other.target = bases[myBase].plotPos[old].clone(); }
+  } else {
+    if (o.plot !== null) plotOwner[o.plot] = null;
+    plotOwner[idx] = o; o.plot = idx;
+  }
+  o.state = 'moving';
+  o.target = bases[myBase].plotPos[idx].clone();
+  if (o.stolen) { o.stolen = false; toast('😈 ' + o.def.name + ' is YOURS now!'); beep(700, 0.1); }
+  else beep(440, 0.1);
+}
+
+// ---------------- bat combat ----------------
+function swingBat() {
+  if (!locked || player.swingCd > 0) return;
+  player.swingCd = 0.7; player.swingT = 0.28;
+  $('batIcon').classList.add('swing');
+  setTimeout(() => $('batIcon').classList.remove('swing'), 220);
+  beep(300, 0.06);
+  // hit remote players/bots in range
+  const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd);
+  let hitAny = false;
+  for (const id in remotes) {
+    const r = remotes[id];
+    const to = r.pos.clone().sub(player.pos); to.y = 0;
+    const dist = to.length();
+    if (dist > 0.1 && dist < 3.6 && to.normalize().dot(new THREE.Vector3(fwd.x, 0, fwd.z).normalize()) > 0.35) {
+      hitAny = true;
+      spawnParticles(r.pos.clone().add(new THREE.Vector3(0, 1.4, 0)), 0xffe066);
+      if (r.isBot) { if (NET.host) { r.knock.add(to.multiplyScalar(9)); r.knock.y = 5; } }
+      else if (NET.online) NET.send({ t:'hit', target: id, from: [player.pos.x, player.pos.z] });
+      else { r.knock.add(to.multiplyScalar(9)); r.knock.y = 5; }
+    }
+  }
+  if (hitAny) { beep(150, 0.15); }
+}
+function gotPunched(from) {
+  const dir = player.pos.clone().sub(new THREE.Vector3(from[0], 0, from[1]));
+  dir.y = 0; dir.normalize();
+  player.knock.add(dir.multiplyScalar(11)); player.knock.y = 5.5;
+  player.shakeT = 0.4;
+  beep(120, 0.2); redFlash();
+  if (carriedObj) {
+    const o = carriedObj;
+    if (o.stolen) {
+      // it flies back to the original owner's base!
+      removeOwned(o, false);
+      if (NET.online) NET.send({ t:'return', uid: o.uid, defName: o.def.name, orig: o.orig, thief: myId });
+      toast('💥 You dropped the stolen ' + o.def.name + '! It went back to its owner.');
+    } else {
+      const plot = plotOwner.indexOf(null);
+      if (plot !== -1) { o.plot = plot; plotOwner[plot] = o; o.state = 'moving'; o.target = bases[myBase].plotPos[plot].clone(); }
+      toast('💥 Dropped ' + o.def.name + '!');
+    }
+    carriedObj = null;
+  } else toast('💥 You got punched!');
+}
+
+// ---------------- particles ----------------
+const particles = [];
+function spawnParticles(pos, color) {
+  for (let i = 0; i < 10; i++) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6),
+      new THREE.MeshBasicMaterial({ color }));
+    m.position.copy(pos);
+    const v = new THREE.Vector3(Math.random()-0.5, Math.random()*0.9, Math.random()-0.5).multiplyScalar(6);
+    scene.add(m);
+    particles.push({ m, v, life: 0.5 });
+  }
+}
+
+// ---------------- index panel ----------------
+function buildIndex() {
+  const list = $('idxList'); list.innerHTML = '';
+  DEFS.forEach(d => {
+    const row = document.createElement('div');
+    row.className = 'idxItem';
+    row.innerHTML = '<div><span class="nm">' + d.name + '</span> <span class="rarityBadge" style="color:' +
+      RARITY[d.rarity].css + '">' + d.rarity.toUpperCase() + '</span><div class="inf">$' + d.income + '/sec</div></div>';
+    const btn = document.createElement('button');
+    btn.className = 'buyBtn'; btn.textContent = '$' + d.cost;
+    btn.onclick = () => {
+      if (cash < d.cost) { toast('Not enough cash!'); beep(160, 0.15); return; }
+      const plot = plotOwner.indexOf(null);
+      if (plot === -1) { toast('No free plots!'); beep(160, 0.15); return; }
+      cash -= d.cost;
+      const w = spawnWild(d, -112);
+      wilds.splice(wilds.indexOf(w), 1);
+      const o = adoptWild(w, plot);
+      toast('Ordered ' + d.name + '! Delivering…');
+    };
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+function toggleIndex() {
+  const p = $('indexPanel');
+  if (p.classList.contains('hidden')) { buildIndex(); p.classList.remove('hidden'); document.exitPointerLock(); }
+  else p.classList.add('hidden');
+}
+$('indexBtn').onclick = toggleIndex;
+$('idxClose').onclick = toggleIndex;
+
+// ---------------- menu / room ----------------
+$('nameInput').value = 'Player' + Math.floor(Math.random()*900 + 100);
+function beginGame(isHost) {
+  myId = 'host';
+  NET.host = isHost;
+  myName = ($('nameInput').value || 'Player').slice(0, 14);
+  myColor = COLORS[Math.floor(Math.random()*7)];
+  bases[myBase].ownerName = myName;
+  bases[myBase].ownerColor = myColor;
+  refreshBaseSign(myBase);
+  const sp = bases[myBase].group.position;
+  player.pos.set(sp.x, 1.7, sp.z + 9);
+  player.yaw = Math.atan2(sp.x, sp.z); // face map center-ish
+  if (isHost) initBots();
+  started = true;
+  $('overlay').classList.add('hidden');
+  refreshRoomBar();
+  updatePlayerList();
+  toast('🎁 Welcome reward: +$100! Buy a Noobini Pizzanini ($100) from the red road!');
+}
+$('btnCreate').onclick = () => { beginGame(true); createRoom(); $('overlay').classList.remove('hidden'); started = false;
+  $('btnStart').onclick = () => { started = true; $('overlay').classList.add('hidden'); lockPointer(); toast('Share the link so friends get their own base!'); }; };
+$('btnJoin').onclick = () => { beginGame(false); joinRoom($('joinInput').value); };
+$('btnOffline').onclick = () => { beginGame(true); lockPointer(); };
+$('roomBar').onclick = () => {
+  const link = location.origin + location.pathname + '?room=' + NET.room;
+  navigator.clipboard?.writeText(link);
+  toast('Invite link copied!');
+};
+function refreshRoomBar() {
+  if (NET.online) { $('roomBar').style.display = 'block';
+    $('roomBar').innerHTML = '🌐 Room <b>' + NET.room + '</b> · ' + playerCount() + ' player' + (playerCount()>1?'s':'') + ' <small>(click to copy invite link)</small>';
+  }
+}
+function updatePlayerList() {
+  const el = $('plist'); el.innerHTML = '';
+  const rows = [{ name: myName + ' (you)', color: myColor }];
+  for (const k in remotes) rows.push({ name: remotes[k].name, color: remotes[k].color, bot: remotes[k].isBot });
+  rows.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'prow';
+    d.innerHTML = '<span class="pdot" style="background:' + r.color + '"></span>' + r.name + (r.bot ? ' 🤖' : '');
+    el.appendChild(d);
+  });
+}
+// auto-join from URL ?room=CODE
+const urlRoom = new URLSearchParams(location.search).get('room');
+if (urlRoom) { $('joinInput').value = urlRoom; toast('Room code loaded — press JOIN!'); }
+
+// pause overlay
+const overlayTitle = document.querySelector('#overlay h1');
+function showPause() {
+  if (!started) return;
+  overlayTitle.textContent = '⏸ PAUSED';
+  $('overlay').classList.remove('hidden');
+  const old = $('overlay').onclick;
+  $('overlay').onclick = (e) => {
+    if (e.target.closest('#menuBox')) return;
+    if (!anyPopup()) { $('overlay').classList.add('hidden'); $('overlay').onclick = old; lockPointer(); }
+  };
+}
+
+// ---------------- toast, flash, sounds ----------------
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.style.opacity = 0, 2400);
+}
+function redFlash() {
+  const f = $('flash');
+  f.style.transition = 'none'; f.style.opacity = 0.8;
+  requestAnimationFrame(() => { f.style.transition = 'opacity .5s'; f.style.opacity = 0; });
+}
+let AC;
+function beep(f, d) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.08, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + d);
+    o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + d);
+  } catch (e) {}
+}
+
+// ---------------- helpers for net messages about ME ----------------
+function myStateMsg() {
+  return { t:'state', id: myId, cash: Math.floor(cash),
+    owned: owned.filter(o => o.plot !== null).map(o => ({ uid: o.uid, defName: o.def.name, plot: o.plot, state: o.state })) };
+}
+
+// ---------------- main loop ----------------
+const clock = new THREE.Clock();
+let spawnTimer = 0, posTimer = 0, stateTimer = 0, saveFov = 75;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // --- movement ---
+  const sprint = keys['ShiftLeft'] || keys['ShiftRight'];
+  let speed = sprint ? 11 : 6.5;
+  if (carriedObj && carriedObj.stolen) speed *= 0.85; // stolen loot weighs you down!
+  const f = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  const r = new THREE.Vector3(-f.z, 0, f.x);
+  const mv = new THREE.Vector3();
+  if (keys['KeyW']) mv.add(f);
+  if (keys['KeyS']) mv.sub(f);
+  if (keys['KeyD']) mv.add(r);
+  if (keys['KeyA']) mv.sub(r);
+  if (mv.lengthSq() > 0) mv.normalize().multiplyScalar(speed * dt);
+  player.pos.add(mv);
+  player.pos.add(player.knock.clone().multiplyScalar(dt));
+  player.knock.multiplyScalar(Math.max(0, 1 - dt*3.5));
+  player.pos.x = Math.max(-140, Math.min(140, player.pos.x));
+  player.pos.z = Math.max(-140, Math.min(140, player.pos.z));
+  player.vy -= 25 * dt; player.pos.y += player.vy * dt;
+  if (player.pos.y <= 1.7) { player.pos.y = 1.7; player.vy = 0; }
+  if (keys['Space'] && player.pos.y <= 1.7) player.vy = 8.5;
+
+  // camera + effects
+  camera.position.copy(player.pos);
+  if (player.shakeT > 0) {
+    player.shakeT -= dt;
+    camera.position.x += (Math.random()-0.5) * 0.15;
+    camera.position.y += (Math.random()-0.5) * 0.15;
+  }
+  camera.rotation.y = player.yaw;
+  camera.rotation.x = player.pitch;
+  const targetFov = sprint && mv.lengthSq() > 0 ? 83 : 75;
+  saveFov += (targetFov - saveFov) * dt * 6;
+  camera.fov = saveFov; camera.updateProjectionMatrix();
+  player.swingCd = Math.max(0, player.swingCd - dt);
+
+  // --- wild brainrots walk the red road ---
+  spawnTimer -= dt;
+  if (spawnTimer <= 0 && wilds.length < 10) { spawnWild(pickDef()); spawnTimer = 2.2; }
+  for (let i = wilds.length - 1; i >= 0; i--) {
+    const w = wilds[i];
+    w.root.position.x += w.speed * dt;
+    w.phase += dt;
+    walkAnim(w, dt);
+    if (w.root.position.x > 126) { scene.remove(w.root); wilds.splice(i, 1); }
+  }
+
+  // --- my brainrots ---
+  for (const o of owned) {
+    o.phase += dt;
+    if (o.state === 'moving') {
+      const dir = o.target.clone().sub(o.root.position); dir.y = 0;
+      if (dir.length() > 0.15) {
+        dir.normalize();
+        o.root.position.add(dir.multiplyScalar(7 * dt));
+        o.body.rotation.y = Math.atan2(dir.x, dir.z);
+        walkAnim(o, dt);
+      } else { o.root.position.copy(o.target); o.state = 'placed'; beep(520, 0.07); }
+    } else if (o.state === 'carried') {
+      const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd);
+      o.root.position.copy(camera.position).add(fwd.multiplyScalar(2.7));
+      o.root.position.y = Math.max(0.8, camera.position.y - 0.7) + Math.sin(o.phase*3)*0.08;
+      o.body.rotation.y += dt * 1.5;
+    } else {
+      o.body.rotation.y += dt * 0.55;
+      o.body.position.y = Math.abs(Math.sin(o.phase * 2.5)) * 0.07;
+    }
+  }
+
+  // --- remotes (players & bots) ---
+  for (const id in remotes) {
+    const r = remotes[id];
+    const av = r.avatar;
+    av.group.position.copy(r.pos);
+    av.group.rotation.y = r.yaw;
+    const moving = true;
+    av.walkPhase += dt * 8;
+    av.legs[0].rotation.x = Math.sin(av.walkPhase) * 0.6;
+    av.legs[1].rotation.x = -Math.sin(av.walkPhase) * 0.6;
+    av.body.position.y = 1.05 + Math.abs(Math.sin(av.walkPhase)) * 0.05;
+    if (r.swingT > 0) {
+      r.swingT -= dt;
+      av.bat.rotation.x = -0.4 - Math.sin((0.3 - r.swingT) / 0.3 * Math.PI) * 1.8;
+    } else av.bat.rotation.x += (-0.4 - av.bat.rotation.x) * dt * 8;
+    if (r.carryModel) r.carryModel.body.rotation.y += dt * 2;
+  }
+  if (NET.host || !NET.online) hostBotUpdate(dt);
+
+  // --- particles ---
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    p.v.y -= 12 * dt;
+    p.m.position.add(p.v.clone().multiplyScalar(dt));
+    p.m.material.opacity = p.life * 2;
+    p.m.material.transparent = true;
+    if (p.life <= 0) { scene.remove(p.m); particles.splice(i, 1); }
+  }
+
+  // --- clouds ---
+  clouds.forEach(c => { c.position.x += dt * 1.1; if (c.position.x > 180) c.position.x = -180; });
+
+  // --- income & HUD ---
+  let perSec = 0;
+  for (const o of owned) if (o.state === 'placed') perSec += o.def.income;
+  cash += perSec * dt;
+  $('cash').textContent = '💰 $' + Math.floor(cash);
+  $('persec').textContent = '📈 $' + perSec + '/sec';
+  $('plots').textContent = '🏠 Plots ' + plotOwner.filter(p => p !== null).length + '/6';
+  const ct = $('carryTag');
+  if (carriedObj) { ct.classList.remove('hidden'); $('carryName').textContent = carriedObj.def.name + (carriedObj.stolen ? ' (STOLEN!)' : ''); }
+  else ct.classList.add('hidden');
+  bases[myBase].rings.forEach((ring, i) => {
+    const o = plotOwner[i];
+    ring.material.color.set(o ? RARITY[o.def.rarity].color : 0xb8c4cc);
+    ring.material.emissive.set(o ? RARITY[o.def.rarity].color : 0x222222);
+  });
+
+  // --- network send ---
+  if (NET.online && started && (NET.host || NET.ready)) {
+    posTimer -= dt;
+    if (posTimer <= 0) {
+      posTimer = 0.1;
+      NET.send({ t:'pos', id: myId, p: [+player.pos.x.toFixed(2), +player.pos.y.toFixed(2), +player.pos.z.toFixed(2)],
+        yaw: +player.yaw.toFixed(2), swing: player.swingT > 0.15,
+        carry: carriedObj ? carriedObj.def.name : null, cuid: carriedObj ? carriedObj.uid : null });
+    }
+    stateTimer -= dt;
+    if (stateTimer <= 0) {
+      stateTimer = 1;
+      if (NET.host) {
+        NET.send(myStateMsg());
+        for (const id in remotes) if (remotes[id].isBot) {
+          const rb = remotes[id];
+          NET.send({ t:'state', id, cash: Math.floor(rb.cash || 0), owned: rb.owned });
+          NET.send({ t:'pos', id, p: [+rb.pos.x.toFixed(2), +rb.pos.y.toFixed(2), +rb.pos.z.toFixed(2)], yaw: rb.yaw });
+        }
+      } else NET.send(myStateMsg());
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+function walkAnim(o, dt) {
+  o.body.position.y = Math.abs(Math.sin(o.phase * 5)) * 0.12;
+  o.body.rotation.z = Math.sin(o.phase * 5) * 0.05;
+  if (o.feet) {
+    o.feet.l.position.z = Math.sin(o.phase * 8) * 0.28;
+    o.feet.r.position.z = -Math.sin(o.phase * 8) * 0.28;
+  }
+}
+animate();
+</script>
+</body>
+</html>
